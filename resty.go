@@ -1,7 +1,12 @@
 package custom_resty
 
 import (
+	"encoding/json"
+	"errors"
 	"github.com/go-resty/resty/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"net"
 	"net/http"
 	"time"
 )
@@ -58,10 +63,22 @@ func (b *BuilderResty) Post(response interface{}) (interface{}, error) {
 
 	data, err = b.client.SetPreRequestHook(b.BeforeRequest).R().SetBody(b.body).Post(b.endpoint)
 	if err != nil {
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return nil, status.Errorf(codes.DeadlineExceeded, TIMEOUT_SERVICES)
+		}
 		return nil, err
 	}
 
-	return data, nil
+	if data.StatusCode() != 200 {
+		return nil, errors.New("response code not 200")
+	}
+
+	var body = data.Body()
+	if err = json.Unmarshal(body, response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (b *BuilderResty) BeforeRequest(r *resty.Client, h *http.Request) error {
