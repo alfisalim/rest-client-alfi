@@ -16,13 +16,15 @@ type BuilderResty struct {
 	headers  map[string]string
 	body     interface{}
 	client   *resty.Client
-	//handler  rest.RestClientRepository
 }
 
 func New() *BuilderResty {
 	client := resty.New()
 
 	return &BuilderResty{
+		headers: map[string]string{
+			"X-ESB-CHANNEL_ID":  "INDS",
+		},
 		client: client,
 	}
 }
